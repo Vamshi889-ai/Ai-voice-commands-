@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Driving Game - Vamshi</title>
+<style>
+body {
+  margin: 0;
+  background: #222;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+canvas {
+  background: #444;
+  display: block;
+  margin: 20px auto;
+  border: 2px solid #fff;
+}
+#score { margin: 10px; font-size: 20px; }
+#voice { margin: 10px; font-size: 18px; color: yellow; }
+button { padding: 8px 15px; margin-top: 10px; }
+</style>
+</head>
+<body>
+<h2>Vamshi's AI Driving Game</h2>
+<canvas id="gameCanvas" width="300" height="500"></canvas>
+<div id="score">Score: 0</div>
+<div id="voice">AI: Ready</div>
+<button id="muteBtn">Mute</button>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let player = {x: 125, y: 400, width: 50, height: 80};
+let enemies = [];
+let score = 0;
+let muted = false;
+
+// Prevent repeated voice spam
+let lastVoiceTime = 0;
+const voiceCooldown = 2000; // 2 seconds
+
+const lanes = [50, 125, 200];
+
+function speak(msg){
+  if(muted) return;
+  document.getElementById("voice").innerText = "AI: " + msg;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(new SpeechSynthesisUtterance(msg));
+}
+
+function spawnEnemy(){
+  let lane = lanes[Math.floor(Math.random()*3)];
+  enemies.push({x: lane, y: -80});
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // Draw player
+  ctx.fillStyle = "blue";
+  ctx.fillRect(player.x, player.y, player.width, player.height);
+
+  // Draw enemies
+  ctx.fillStyle = "red";
+  enemies.forEach(e=>{
+    e.y += 4;
+    ctx.fillRect(e.x, e.y, 50, 80);
+
+    // AI Voice: only once every 2 seconds
+    if(e.y>300 && e.y<400 && Date.now() - lastVoiceTime > voiceCooldown){
+      if(player.x === 50) {
+        speak("Car ahead, take right!");
+      } else if(player.x === 200) {
+        speak("Car ahead, take left!");
+      } else {
+        speak("Car ahead, choose safe side!");
+      }
+      lastVoiceTime = Date.now();
+    }
+
+    // Collision
+    if(player.x<e.x+50 && player.x+50>e.x && player.y<e.y+80 && player.y+80>e.y){
+      speak("Collision!");
+      alert("Game Over! Score: "+score);
+      reset();
+    }
+
+    // Remove passed enemies
+    if(e.y>500){
+      enemies.shift();
+      score++;
+      document.getElementById("score").innerText="Score: "+score;
+    }
+  });
+
+  requestAnimationFrame(draw);
+}
+
+function reset(){
+  enemies = [];
+  score = 0;
+  player.x = 125;
+  document.getElementById("score").innerText="Score: 0";
+}
+
+document.addEventListener("keydown",e=>{
+  if(e.key==="ArrowLeft" && player.x>50) player.x-=75;
+  if(e.key==="ArrowRight" && player.x<200) player.x+=75;
+});
+
+// Touch for mobile
+canvas.addEventListener("touchstart",e=>{
+  let touchX=e.touches[0].clientX - canvas.getBoundingClientRect().left;
+  if(touchX<player.x) player.x-=75;
+  else player.x+=75;
+});
+
+// Mute button
+document.getElementById("muteBtn").addEventListener("click",()=>{
+  muted=!muted;
+  document.getElementById("muteBtn").innerText = muted?"Unmute":"Mute";
+});
+
+setInterval(spawnEnemy,1500);
+draw();
+</script>
+</body>
+  </html>
+  
